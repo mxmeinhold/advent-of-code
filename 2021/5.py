@@ -60,25 +60,32 @@ class Map:
 
         self.coords = list(chain.from_iterable(map(lambda v: v.coords, self.vents)))
 
-        self.width = max(map(lambda c: c.x, self.coords))+1
-        self.height = max(map(lambda c: c.y, self.coords))+1
+        self._map_cache = None
 
     def num_overlaps(self):
-        return sum(map(lambda i: i>1, chain.from_iterable(self.map())))
+        return sum(map(lambda i: i>1, self.map().values()))
 
-    def map(self):
-        m = [
-            [0] * self.width
-            for _ in range(self.height)
-        ]
-
+    def map(self) -> dict[Coord, int]:
+        if self._map_cache:
+            return self._map_cache
+        m = dict()
         for c in self.coords:
-            m[c.y][c.x] +=1
+            m[c] = m.get(c, 0) + 1
 
+        self._map_cache = m
         return m
 
     def __repr__(self):
-        return '\n'.join(map(lambda l: ''.join(map(str, l)), (self.map()))).replace('0','.')
+        width = max(map(lambda c: c.x, self.map().keys()))+1
+        height = max(map(lambda c: c.y, self.map().keys()))+1
+        m = [[
+                self.map().get(Coord(x, y), '.')
+                for x in range(width)
+            ]
+            for y in range(height)
+        ]
+
+        return '\n'.join(map(lambda l: ''.join(map(str, l)), (m)))
 
 
 with open(sys.argv[1], 'r') as in_file:
