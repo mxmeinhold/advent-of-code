@@ -2,29 +2,18 @@
 
 import sys
 
-### Part 1 ###
-# Given an ordered list of sea floor depths, count the number of relative increases
-
 with open(sys.argv[1], 'r') as in_file:
     depths = list(map(int, in_file))
 
-increased = 0
-for i in range(1, len(depths)-1):
-    if depths[i-1] < depths[i]:
-        increased += 1
+### Part 1 ###
+# Given an ordered list of sea floor depths, count the number of relative increases
 
-print(f'Part 1: {increased}')
+print(f'Part 1: {sum(map(lambda i: depths[i-1] < depths[i], range(1, len(depths))))}')
 
 ### Part 2 ###
 # Instead of looking at each depth, consider a sliding window of 3 measurements.
 # Take the sum of each window, and count the number of relative increases
+# Since A+B+C < B+C+D is equivalent to A < D, we can skip the whole sum thing
 
-increased = 0
-last = sum(depths[0:3])
-for i in range(1, len(depths)-2):
-    new = sum(depths[i:i+3])
-    if last < new:
-        increased += 1
-    last = new
+print(f'Part 2: {sum(map(lambda i: depths[i] < depths[i+3], range(len(depths)-3)))}')
 
-print(f'Part 2: {increased}')
