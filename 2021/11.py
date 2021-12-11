@@ -3,33 +3,39 @@
 import sys
 
 with open(sys.argv[1], 'r') as in_file:
-    octopodes = list(map(lambda l: list(map(int, l.strip())), in_file))
+    src = map(int, ''.join(map(str.strip, in_file)))
+    octopodes = {
+        (r, c): next(src)
+        for r in range(10)
+        for c in range(10)
+    }
 
 part1 = 0
 
+coords = lambda: {(r,c) for r in range(10) for c in range(10)}
+
 def step():
     ''' Does a step. Returns False if all the octopodes flashed in sync '''
-    for r in range(10):
-        for c in range(10):
-            octopodes[r][c] +=1
+    flashed = set()
+    not_flashed = coords()
+    for c in not_flashed:
+        octopodes[c] += 1
 
-    flashed = []
-    while any(map(lambda l: any(map(lambda i: i>9, l)), octopodes)):
-        for r in range(10):
-            for c in range(10):
-                if (r,c) in flashed:
-                    octopodes[r][c] = 0
-                    continue
-                if octopodes[r][c] > 9:
-                    flashed.append((r,c))
-                    global part1
-                    part1 += 1
+    while any(map(lambda c: octopodes[c] > 9, not_flashed)):
+        for c in not_flashed:
+            if octopodes[c] > 9:
+                flashed.add(c)
+                global part1
+                part1 += 1
 
-                    for r2 in range(max(0, r-1), min(9, r+1)+1):
-                        for c2 in range(max(0, c-1), min(9, c+1)+1):
-                            octopodes[r2][c2] += 1
+                for row in range(max(0, c[0]-1), min(9, c[0]+1)+1):
+                    for col in range(max(0, c[1]-1), min(9, c[1]+1)+1):
+                        octopodes[(row, col)] += 1
+
+        not_flashed -= flashed
+
     for t in flashed:
-        octopodes[t[0]][t[1]] = 0
+        octopodes[t] = 0
 
     if len(flashed) == 100:
         return False
