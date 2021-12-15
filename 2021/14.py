@@ -9,25 +9,39 @@ with open(sys.argv[1], 'r') as in_file:
     next(in_file) # blank
     rules = dict(map(lambda s: tuple(s.strip().split(' -> ')), in_file))
 
-def step(templ):
-    out = ""
-    for i in range(len(templ)-1):
-        pair = templ[i:i+2]
+def step(pairs):
+    out = dict()
+    for pair, count in pairs.items():
         if pair in rules:
-            out += pair[0] + rules[pair]
+            out[pair[0] + rules[pair]] = out.get(pair[0] + rules[pair], 0) + count
+            out[rules[pair] + pair[1]] = out.get(rules[pair] + pair[1], 0) + count
         else:
-            out += pair[0]
-    # Make sure we include the last charachter
-    out += templ[-1]
+            out[pair] = count
     return out
 
-def count(string):
-    counts = dict()
-    for c in template:
-        counts[c] = counts.get(c, 0) + 1
-    return max(counts.values()) - min(counts.values())
+def count(pairs):
+    out = dict()
+    out = {template[0]: 1, template[-1]: 1}
+    for pair, count in pairs.items():
+        out[pair[0]] = out.get(pair[0], 0) + count
+        out[pair[1]] = out.get(pair[1], 0) + count
+
+    # floordiv by 2 since we're double counting
+    return max(out.values())//2 - min(out.values())//2
+
+# The final string would be too long to fit in memory, so reduce to counts of
+# pairs, which is a much smaller set. This has the benefit of making our
+# iteration faster since we have a smaller set to iterate over
+pairs = dict()
+for i in range(len(template)-1):
+    pairs[template[i:i+2]] = pairs.get(template[i:i+2], 0) + 1
 
 for _ in range(10):
-    template = step(template)
+    pairs = step(pairs)
 
-print('Part 1:', count(template))
+print('Part 1:', count(pairs))
+
+for _ in range(30):
+    pairs = step(pairs)
+
+print('Part 2:', count(pairs))
