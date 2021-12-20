@@ -2,75 +2,72 @@
 
 import sys
 
-expand = 2
+from typing import Iterable, Literal, Sequence, cast
+
+Chr = Literal['#', '.']
+Coord = tuple[int, int]
+Image = dict[Coord, Chr]
+
 with open(sys.argv[1], 'r') as in_file:
-    algo = next(in_file).strip()
+    algo: Sequence[Chr] = cast(Sequence[Chr], next(in_file).strip())
     next(in_file) # blank
-    lines = list(map(list, map(str.strip, in_file)))
 
-def enhance(image):
-    def get(r, c):
-        if r >= len(image) or r < 0:
-            return '.'
-        if c >= len(image[r]) or c < 0:
-            return '.'
-        return image[r][c]
+    result = cast(Image, {
+        (r, c): char
+        for r, line in enumerate(map(str.strip, in_file))
+        for c, char in enumerate(line)
+    })
 
-    out = [['.' for _ in range(len(image[0])+(2*expand))] for _ in range(len(image)+(2*expand))]
+def adj(coord: Coord) -> Iterable[Coord]:
+    """
+    Get the coords adjacent to coord
+    (8-connected, including coord, in the order needed for int conversion)
+    """
+    r, c = coord
+    for row in range(r-1, r+2):
+        for col in range(c-1, c+2):
+            yield (row, col)
 
-    for row in range(-expand, len(image)+expand):
-        for col in range(-expand, len(image[0])+expand):
-            string = ''.join((get(r, c) for r in range(row-1, row+2) for c in range(col-1, col+2)))
-            idx = int(string.replace('.', '0').replace('#', '1'), 2)
-            out[row+expand][col+expand] = algo[idx]
+def enhance_c(coord: Coord, image: dict[Coord, Chr], step: int) -> Chr:
+    """ get the enhanced pixel for a given coord """
+    return algo[int(''.join(
+        map(
+            lambda c: '1' if c == '#' else '0',
+            map(
+                lambda c: image.get(c, algo[0] if step % 2 == 0 else '.'),
+                adj(coord)
+            )
+        )
+    ), 2)]
+
+def enhance(data: Image, step: int) -> Image:
+    """ Enhance an image """
+    out = {}
+    coords = set()
+    for d in data:
+        coords |= set(adj(d))
+    for d in coords:
+        out[d] = enhance_c(d, data, step)
     return out
 
-def enhance2(image, step):
-    def get(r, c):
-        if r >= len(image) or r < 0 or c >= len(image[r]) or c < 0:
-            return algo[0] if step % 2 == 1 else algo[int((algo[0]*9).replace('#', '1').replace('.', '0'), 2)]
-        return image[r][c]
+def debug(image: Image) -> None:
+    """ Print an image for debugging purposes """
+    maxc = max(map(lambda t: t[1], image.keys()))
 
-    out = [['.' for _ in range(len(image[0])+(2*expand))] for _ in range(len(image)+(2*expand))]
+    out = '\n'
+    for coord in sorted(image.keys()):
+        out += image[coord]
+        if coord[1] == maxc:
+            out += '\n'
+    print(out)
 
-    for row in range(-expand, len(image)+expand):
-        for col in range(-expand, len(image[0])+expand):
-            string = ''.join((get(r, c) for r in range(row-1, row+2) for c in range(col-1, col+2)))
-            idx = int(string.replace('.', '0').replace('#', '1'), 2)
-            out[row+expand][col+expand] = algo[idx]
-    return out
-def enhance3(image, step):
-    def get(r, c):
-        if r >= len(image) or r < 0 or c >= len(image[r]) or c < 0:
-            return algo[0] if step % 2 == 1 else algo[int((algo[0]*9).replace('#', '1').replace('.', '0'), 2)]
-        return image[r][c]
+#debug(result)
 
-    out = [['.' for _ in range(len(image[0]))] for _ in range(len(image))]
-
-    for row in range(len(image)):
-        for col in range(len(image[0])):
-            string = ''.join((get(r, c) for r in range(row-1, row+2) for c in range(col-1, col+2)))
-            idx = int(string.replace('.', '0').replace('#', '1'), 2)
-            out[row][col] = algo[idx]
-    return out
-
-def debug(image):
-    print('\n'.join(map(lambda line: ''.join(line).replace('.', ' '), image)))
-
-#debug(lines)
-e1 = enhance(lines)
-debug(e1)
-e2 = enhance2(e1, 2)
-debug(e2)
-print('Part 1:', sum((1 if c == '#' else 0 for line in e2 for c in line )))
-result = list(map(lambda line: line[expand:-expand], e2[expand:-expand]))
-debug(result)
-print(len(result), len(result[0]))
-#for i in range(50-2):
 for i in range(2):
-    result = enhance3(result, i)
-    #debug(result)
-print('Part 2:', sum((1 if c == '#' else 0 for line in result for c in line )))
+    result = enhance(result, i+1)
+print('Part 1:', sum((1 if c == '#' else 0 for c in result.values())))
+#debug(result)
 
-
-
+for i in range(2, 50):
+    result = enhance(result, i+1)
+print('Part 2:', sum((1 if c == '#' else 0 for c in result.values())))
